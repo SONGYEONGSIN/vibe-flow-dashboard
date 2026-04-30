@@ -17,17 +17,43 @@ type ActivePlan = {
   modifiedAt: string;
 };
 
+type RecentMessage = {
+  msg_id?: string;
+  type?: string;
+  from?: string;
+  subject?: string;
+  ts?: string;
+  status?: string;
+};
+
+type AgentInbox = {
+  agent: string;
+  unread: number;
+  total: number;
+  recent: RecentMessage[];
+};
+
+type InboxSummary = {
+  active_agents: AgentInbox[];
+  quiet_agents: AgentInbox[];
+  broadcast_count: number;
+  debates_count: number;
+  unread_total: number;
+};
+
 const MAX_EVENTS = 200;
 const PLANS_POLL_MS = 10_000;
+const INBOX_POLL_MS = 15_000;
 
 export default function Home() {
   const [events, setEvents] = useState<EventLine[]>([]);
   const [plans, setPlans] = useState<ActivePlan[]>([]);
+  const [inbox, setInbox] = useState<InboxSummary | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  // 활성 plan polling (10s 주기)
+  // 활성 plan polling (10s)
   useEffect(() => {
     let cancelled = false;
     const fetchPlans = async () => {
@@ -42,6 +68,27 @@ export default function Home() {
     };
     fetchPlans();
     const id = setInterval(fetchPlans, PLANS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  // Inbox polling (15s)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchInbox = async () => {
+      try {
+        const res = await fetch("/api/inbox");
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as InboxSummary;
+        setInbox(data);
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchInbox();
+    const id = setInterval(fetchInbox, INBOX_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -119,6 +166,44 @@ export default function Home() {
       )}
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-8 py-6">
+        <section className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              📬 Inbox{" "}
+              {inbox ? (
+                <span className="ml-2 text-xs font-normal text-zinc-500">
+                  unread {inbox.unread_total} · broadcast{" "}
+                  {inbox.broadcast_count} · debates {inbox.debates_count}
+                </span>
+              ) : null}
+            </h2>
+          </div>
+          {!inbox ? (
+            <div className="p-6 text-center text-sm text-zinc-500">
+              로딩 중...
+            </div>
+          ) : inbox.active_agents.length === 0 ? (
+            <div className="p-6 text-center text-sm text-zinc-500">
+              모든 에이전트 0 unread (Quiet:{" "}
+              {inbox.quiet_agents.length} agents)
+            </div>
+          ) : (
+            <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
+              {inbox.active_agents.map((a) => (
+                <li key={a.agent} className="px-4 py-3">
+                  <InboxRow inbox={a} />
+                </li>
+              ))}
+              {inbox.quiet_agents.length > 0 && (
+                <li className="px-4 py-2 text-xs text-zinc-500">
+                  Quiet ({inbox.quiet_agents.length}):{" "}
+                  {inbox.quiet_agents.map((a) => `@${a.agent}`).join(", ")}
+                </li>
+              )}
+            </ul>
+          )}
+        </section>
+
         <section className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <div className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
             <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
@@ -211,6 +296,52 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+function InboxRow({ inbox }: { inbox: AgentInbox }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          @{inbox.agent}
+        </span>
+        <span className="shrink-0 text-xs text-zinc-500">
+          <span className="font-semibold text-amber-600 dark:text-amber-400">
+            {inbox.unread} unread
+          </span>{" "}
+          / {inbox.total} total
+        </span>
+      </div>
+      {inbox.recent.length > 0 && (
+        <ul className="space-y-0.5 text-xs">
+          {inbox.recent.map((m, i) => (
+            <li
+              key={`${inbox.agent}-${m.msg_id ?? i}`}
+              className="truncate text-zinc-600 dark:text-zinc-400"
+            >
+              <span className="text-zinc-400">→</span>{" "}
+              <span className="font-medium">
+                &ldquo;{m.subject ?? "(no subject)"}&rdquo;
+              </span>{" "}
+              <span className="text-zinc-500">
+                ({m.from ?? "?"} {m.ts ? formatRelative(m.ts) : ""})
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function formatRelative(ts: string): string {
+  const t = new Date(ts).getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = Math.max(0, Date.now() - t);
+  if (diff < 60_000) return "방금";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}분 전`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}시간 전`;
+  return `${Math.floor(diff / 86_400_000)}일 전`;
 }
 
 function PlanRow({ plan }: { plan: ActivePlan }) {
