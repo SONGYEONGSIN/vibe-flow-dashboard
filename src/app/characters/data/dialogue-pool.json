@@ -1,0 +1,65 @@
+{
+  "planner": {
+    "tool_pass":   ["계획대로다", "다음 단계 OK", "흠... 좋아"],
+    "tool_fail":   ["다시 짜자", "계획 수정"],
+    "investigation": ["루트 캐스 찾자"],
+    "wander":      ["다음은…", "📋"]
+  },
+  "designer": {
+    "tool_pass":   ["디자인 살아남! 🎨", "또 한 픽셀 추가!", "예쁘다…", "린트 깨끗", "포맷 ✨"],
+    "tool_fail":   ["어… 다시 볼게", "스타일 어긋남", "줄 맞춰야지"],
+    "wander":      ["흠…", "스케치 중", "🎨"]
+  },
+  "developer": {
+    "tool_pass":   ["타입 통과", "컴파일 OK", "⚡ 빨라!"],
+    "tool_fail":   ["타입 안 맞음", "컴파일 실패…", "수정 중"],
+    "wander":      ["코드 짠다", "⚡"]
+  },
+  "qa": {
+    "tool_pass":   ["좋아", "테스트 OK"],
+    "tool_fail":   ["버그다!", "재현 시도", "🔍"],
+    "bug_found":   ["여기다!", "이거 봐!"],
+    "investigation": ["확인 중…", "🔍"],
+    "wander":      ["흠…"]
+  },
+  "security": {
+    "tool_pass":   ["안전", "🛡️"],
+    "tool_fail":   ["취약점", "다시 점검"],
+    "wander":      ["순찰 중", "🛡️"]
+  },
+  "validator": {
+    "approved":    ["통과!", "GOOD ✨", "넘겨라", "✅"],
+    "rejected":    ["다시", "안 됨", "수정 필요"],
+    "wander":      ["검토 중", "확인…"]
+  },
+  "feedback": {
+    "tool_pass":   ["깔끔해!", "💬"],
+    "tool_fail":   ["피드백 있음", "이거 보자"],
+    "wander":      ["💬", "흠…"]
+  },
+  "moderator": {
+    "tool_pass":   ["진행 OK", "⚖️"],
+    "tool_fail":   ["조정 필요", "잠시…"],
+    "wander":      ["⚖️", "조용…"]
+  },
+  "comparator": {
+    "tool_pass":   ["A가 낫다", "B가 낫다"],
+    "tool_fail":   ["둘 다 미흡"],
+    "wander":      ["🆚", "비교 중"]
+  },
+  "retrospective": {
+    "tool_pass":   ["기록함", "📚"],
+    "tool_fail":   ["학습 거리"],
+    "wander":      ["📚", "회고…"]
+  },
+  "grader": {
+    "tool_pass":   ["A+", "📊"],
+    "tool_fail":   ["F"],
+    "wander":      ["📊"]
+  },
+  "skill-reviewer": {
+    "tool_pass":   ["스킬 OK", "🔧"],
+    "tool_fail":   ["수리 필요"],
+    "wander":      ["🔧"]
+  }
+}
