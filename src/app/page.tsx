@@ -41,14 +41,30 @@ type InboxSummary = {
   unread_total: number;
 };
 
+type Metrics = {
+  analyzed_events: number;
+  period_days: number;
+  verify: { total: number; pass: number; fail: number; pass_rate: number };
+  hook: { success: number; failure: number; success_rate: number };
+  commit: {
+    total_30d: number;
+    daily_avg_30d: number;
+    daily_counts_7d: number[];
+    sparkline_7d: string;
+  };
+  top_skills: { type: string; count: number; label: string }[];
+};
+
 const MAX_EVENTS = 200;
 const PLANS_POLL_MS = 10_000;
 const INBOX_POLL_MS = 15_000;
+const METRICS_POLL_MS = 30_000;
 
 export default function Home() {
   const [events, setEvents] = useState<EventLine[]>([]);
   const [plans, setPlans] = useState<ActivePlan[]>([]);
   const [inbox, setInbox] = useState<InboxSummary | null>(null);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -89,6 +105,27 @@ export default function Home() {
     };
     fetchInbox();
     const id = setInterval(fetchInbox, INBOX_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  // Metrics polling (30s)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchMetrics = async () => {
+      try {
+        const res = await fetch("/api/metrics");
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as Metrics;
+        setMetrics(data);
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchMetrics();
+    const id = setInterval(fetchMetrics, METRICS_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -166,6 +203,75 @@ export default function Home() {
       )}
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-8 py-6">
+        <section>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <MetricCard
+              title="Verify pass rate"
+              value={metrics ? `${metrics.verify.pass_rate}%` : "—"}
+              detail={
+                metrics
+                  ? `${metrics.verify.pass}/${metrics.verify.total} (30d)`
+                  : ""
+              }
+              accent="text-green-600 dark:text-green-400"
+            />
+            <MetricCard
+              title="Hook 성공률"
+              value={metrics ? `${metrics.hook.success_rate}%` : "—"}
+              detail={
+                metrics
+                  ? `${metrics.hook.success} ok / ${metrics.hook.failure} fail`
+                  : ""
+              }
+              accent="text-blue-600 dark:text-blue-400"
+            />
+            <MetricCard
+              title="Commit 빈도"
+              value={
+                metrics
+                  ? `${metrics.commit.daily_avg_30d}/일`
+                  : "—"
+              }
+              detail={
+                metrics
+                  ? `7일 ${metrics.commit.sparkline_7d} (총 ${metrics.commit.total_30d})`
+                  : ""
+              }
+              accent="text-purple-600 dark:text-purple-400"
+            />
+            <MetricCard
+              title="분석된 events"
+              value={metrics ? `${metrics.analyzed_events}` : "—"}
+              detail={metrics ? `${metrics.period_days}일 누적` : ""}
+              accent="text-zinc-700 dark:text-zinc-300"
+            />
+          </div>
+
+          {metrics && metrics.top_skills.length > 0 && (
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+              <h3 className="mb-2 text-xs font-semibold text-zinc-500">
+                Top 5 스킬 (30일)
+              </h3>
+              <ol className="space-y-1 text-sm">
+                {metrics.top_skills.map((s, i) => (
+                  <li
+                    key={s.type}
+                    className="flex items-center justify-between text-zinc-700 dark:text-zinc-300"
+                  >
+                    <span>
+                      <span className="text-zinc-400">{i + 1}.</span>{" "}
+                      <span className="font-mono">{s.label}</span>
+                    </span>
+                    <span className="font-mono text-xs text-zinc-500">
+                      {s.count}회
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </section>
+
         <section className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <div className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
             <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
@@ -294,6 +400,28 @@ export default function Home() {
           </p>
         </footer>
       </main>
+    </div>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+  detail,
+  accent,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  accent: string;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="text-xs font-medium text-zinc-500">{title}</div>
+      <div className={`mt-1 text-2xl font-bold ${accent}`}>{value}</div>
+      <div className="mt-1 truncate font-mono text-xs text-zinc-500">
+        {detail || " "}
+      </div>
     </div>
   );
 }
