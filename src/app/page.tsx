@@ -7,13 +7,46 @@ type EventLine = {
   parsed?: Record<string, unknown>;
 };
 
+type ActivePlan = {
+  filename: string;
+  name: string;
+  status: string;
+  done: number;
+  total: number;
+  pct: number;
+  modifiedAt: string;
+};
+
 const MAX_EVENTS = 200;
+const PLANS_POLL_MS = 10_000;
 
 export default function Home() {
   const [events, setEvents] = useState<EventLine[]>([]);
+  const [plans, setPlans] = useState<ActivePlan[]>([]);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+
+  // 활성 plan polling (10s 주기)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchPlans = async () => {
+      try {
+        const res = await fetch("/api/plans");
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { plans: ActivePlan[] };
+        setPlans(data.plans);
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchPlans();
+    const id = setInterval(fetchPlans, PLANS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     const source = new EventSource("/api/events");
@@ -85,7 +118,36 @@ export default function Home() {
         </div>
       )}
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-8 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-8 py-6">
+        <section className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              📋 활성 Plan ({plans.length})
+            </h2>
+          </div>
+          {plans.length === 0 ? (
+            <div className="p-6 text-center text-sm text-zinc-500">
+              활성 plan 없음 (
+              <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+                .claude/plans/*.md
+              </code>{" "}
+              에 frontmatter{" "}
+              <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+                status: in_progress
+              </code>{" "}
+              필요)
+            </div>
+          ) : (
+            <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
+              {plans.map((p) => (
+                <li key={p.filename} className="px-4 py-3">
+                  <PlanRow plan={p} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <section className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
           <div className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
             <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
@@ -147,6 +209,27 @@ export default function Home() {
           </p>
         </footer>
       </main>
+    </div>
+  );
+}
+
+function PlanRow({ plan }: { plan: ActivePlan }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="truncate font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          {plan.name || plan.filename}
+        </span>
+        <span className="shrink-0 text-xs text-zinc-500">
+          {plan.done}/{plan.total} ({plan.pct}%)
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+        <div
+          className="h-full bg-blue-500 transition-all dark:bg-blue-400"
+          style={{ width: `${plan.pct}%` }}
+        />
+      </div>
     </div>
   );
 }
