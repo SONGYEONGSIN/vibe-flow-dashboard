@@ -2,9 +2,11 @@
 
 import { AGENT_MAP } from "./data/agents";
 import { SpeechBubble } from "./SpeechBubble";
+import { ChibiSprite } from "./ChibiSprite";
 import type { CharacterState } from "./lib/reducer";
 
-const SPRITE_SIZE = 48;
+const SLOT_WIDTH = 48;
+const SLOT_HEIGHT = 64;
 
 type Props = {
   state: CharacterState;
@@ -12,20 +14,17 @@ type Props = {
 
 export function Character({ state }: Props) {
   const meta = AGENT_MAP[state.id];
-  const spriteSuffix =
-    state.action === "walk" ? `walk-${state.facing}` : `idle-${state.facing}`;
-  const spriteUrl = `${meta.spritePath}-${spriteSuffix}.png`;
-
   const jumpY = state.action === "jump" ? -12 : 0;
+  const flip = state.facing === "left" ? "scaleX(-1)" : "";
 
   return (
     <div
       className="absolute"
       style={{
-        width: SPRITE_SIZE,
-        height: SPRITE_SIZE,
-        left: -SPRITE_SIZE / 2,
-        top: -SPRITE_SIZE,
+        width: SLOT_WIDTH,
+        height: SLOT_HEIGHT,
+        left: -SLOT_WIDTH / 2,
+        top: -SLOT_HEIGHT,
         transform: `translateY(${jumpY}px)`,
         transition:
           state.action === "jump"
@@ -36,18 +35,9 @@ export function Character({ state }: Props) {
       }}
       aria-label={`${meta.name} (${state.action})`}
     >
-      <div
-        className="h-full w-full"
-        style={{
-          backgroundImage: `url(${spriteUrl})`,
-          backgroundSize: "contain",
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center",
-          backgroundColor: meta.mainColor,
-          imageRendering: "pixelated",
-          borderRadius: 4,
-        }}
-      />
+      <div style={{ width: "100%", height: "100%", transform: flip, transformOrigin: "center" }}>
+        <ChibiSprite agentId={state.id} />
+      </div>
       {state.bubble && (
         <SpeechBubble text={state.bubble.text} expiresAt={state.bubble.expiresAt} />
       )}
