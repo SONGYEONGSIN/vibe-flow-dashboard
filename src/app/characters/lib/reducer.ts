@@ -117,5 +117,10 @@ export function characterReducer(states: CharacterState[], action: ReducerAction
         return s;
       });
     }
+
+    default: {
+      const _exhaustive: never = action;
+      return _exhaustive;
+    }
   }
 }
