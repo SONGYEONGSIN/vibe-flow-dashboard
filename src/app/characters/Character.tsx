@@ -41,11 +41,12 @@ export function Character({ state }: Props) {
       {state.bubble && (
         <SpeechBubble text={state.bubble.text} expiresAt={state.bubble.expiresAt} />
       )}
-      {!state.unlocked && (
-        <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] text-zinc-300">
-          Stage {meta.unlockStage}
-        </span>
-      )}
+      <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-semibold text-zinc-200">
+        {meta.id}
+        {!state.unlocked && (
+          <span className="ml-1 font-normal text-zinc-400">· Stage {meta.unlockStage}</span>
+        )}
+      </span>
     </div>
   );
 }
