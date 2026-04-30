@@ -28,6 +28,13 @@ export async function GET() {
         }
       };
 
+      // 즉시 ping — EventSource onopen 안정적 발화 보장 (file 없을 때도)
+      try {
+        controller.enqueue(encoder.encode(`: ping\n\n`));
+      } catch {
+        cleanup?.();
+      }
+
       // 초기 50 라인 push
       for (const e of initial) send(e);
 
