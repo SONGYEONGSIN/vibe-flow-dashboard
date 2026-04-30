@@ -1,11 +1,12 @@
 {
   "name": "vibe-flow-dashboard",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
+  "description": "vibe-flow의 라이브 메트릭 + inbox + 활성 plan + .claude 구조 대시보드. Next.js + chokidar + SSE.",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 9999",
     "build": "next build",
-    "start": "next start"
+    "start": "next start --port 9999"
   },
   "dependencies": {
     "chokidar": "^5.0.0",
