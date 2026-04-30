@@ -1,66 +1,177 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+type EventLine = {
+  raw: string;
+  parsed?: Record<string, unknown>;
+};
+
+const MAX_EVENTS = 200;
+
 export default function Home() {
+  const [events, setEvents] = useState<EventLine[]>([]);
+  const [connected, setConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const source = new EventSource("/api/events");
+
+    source.onopen = () => {
+      setConnected(true);
+      setError(null);
+    };
+
+    source.onmessage = (msg) => {
+      try {
+        const event = JSON.parse(msg.data) as EventLine;
+        setEvents((prev) => {
+          const next = [...prev, event];
+          // 최근 MAX_EVENTS만 유지
+          return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
+        });
+      } catch (e) {
+        setError(`Parse error: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    };
+
+    source.onerror = () => {
+      setConnected(false);
+      setError("SSE connection error (재연결 시도 중...)");
+    };
+
+    return () => source.close();
+  }, []);
+
+  // 자동 스크롤 — 새 이벤트 도착 시 맨 아래로
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [events]);
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex w-full max-w-3xl flex-col gap-8 px-8 py-16">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            vibe-flow-dashboard
-          </h1>
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">
-            <a
-              href="https://github.com/SONGYEONGSIN/vibe-flow"
-              className="font-medium text-zinc-900 underline dark:text-zinc-50"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              vibe-flow
-            </a>
-            의 라이브 메트릭 + inbox + 활성 plan 대시보드.
-          </p>
-        </header>
+    <div className="flex min-h-screen flex-col bg-zinc-50 font-sans dark:bg-black">
+      <header className="border-b border-zinc-200 bg-white px-8 py-4 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+              vibe-flow-dashboard
+            </h1>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              events.jsonl 라이브 스트림 · Phase B (MVP)
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-block h-2 w-2 rounded-full ${
+                connected ? "bg-green-500" : "bg-red-500"
+              }`}
+            />
+            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+              {connected ? "연결됨" : "연결 끊김"}
+            </span>
+            <span className="ml-4 text-sm text-zinc-500">
+              {events.length} events
+            </span>
+          </div>
+        </div>
+      </header>
 
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            🚧 Phase A — Scaffold
-          </h2>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            UI/WebSocket 미구현. 다음 이터레이션에서 추가.
-          </p>
-          <ul className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <li>✓ Next.js 16 + TypeScript + Tailwind 4 scaffold</li>
-            <li>✓ GitHub repo + first push</li>
-          </ul>
+      {error && (
+        <div className="border-b border-red-200 bg-red-50 px-8 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          {error}
+        </div>
+      )}
+
+      <main className="mx-auto w-full max-w-5xl flex-1 px-8 py-6">
+        <section className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              📡 Events Stream (최근 {MAX_EVENTS}건)
+            </h2>
+          </div>
+          <div
+            ref={listRef}
+            className="h-[70vh] overflow-y-auto font-mono text-xs"
+          >
+            {events.length === 0 ? (
+              <div className="p-8 text-center text-zinc-500">
+                events 대기 중... (
+                <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+                  VIBE_FLOW_PROJECT
+                </code>{" "}
+                환경변수 또는 현재 디렉토리의{" "}
+                <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+                  .claude/events.jsonl
+                </code>{" "}
+                필요)
+              </div>
+            ) : (
+              <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
+                {events.map((e, i) => (
+                  <li
+                    key={`${i}-${e.raw.slice(0, 30)}`}
+                    className="px-4 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  >
+                    {e.parsed ? (
+                      <EventRow event={e.parsed} />
+                    ) : (
+                      <span className="text-zinc-500">{e.raw}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            다음 — Phase B (MVP)
-          </h2>
-          <ul className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <li>· events.jsonl 실시간 tail (chokidar)</li>
-            <li>· WebSocket 통신 (server actions / socket.io)</li>
-            <li>· 단순 1 페이지 UI: 최근 events stream</li>
-          </ul>
-        </section>
-
-        <footer className="text-sm text-zinc-500 dark:text-zinc-500">
+        <footer className="mt-6 text-xs text-zinc-500">
           <p>
-            Source 침범 0 — vibe-flow의 Layer 1/2는 그대로. 대시보드는 읽기
-            전용.
+            데이터 소스:{" "}
+            <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+              {`$VIBE_FLOW_PROJECT/.claude/events.jsonl`}
+            </code>
           </p>
           <p className="mt-1">
-            ROADMAP:{" "}
+            Phase C 다음:{" "}
             <a
-              href="https://github.com/SONGYEONGSIN/vibe-flow/blob/main/ROADMAP.md"
+              href="https://github.com/SONGYEONGSIN/vibe-flow-dashboard#로드맵"
               className="underline"
               target="_blank"
               rel="noopener noreferrer"
             >
-              vibe-flow Phase 3
+              활성 plan / inbox / 메트릭 / .claude 시각화
             </a>
           </p>
         </footer>
       </main>
+    </div>
+  );
+}
+
+function EventRow({ event }: { event: Record<string, unknown> }) {
+  const type = String(event.type ?? "?");
+  const ts = String(event.ts ?? "");
+  const time = ts ? new Date(ts).toLocaleTimeString("ko-KR") : "";
+
+  // type 외 다른 키만 추출 (compact 표시)
+  const rest = Object.entries(event).filter(
+    ([k]) => k !== "type" && k !== "ts",
+  );
+
+  return (
+    <div className="flex items-start gap-3">
+      <span className="w-20 shrink-0 text-zinc-400">{time}</span>
+      <span className="w-32 shrink-0 font-semibold text-blue-600 dark:text-blue-400">
+        {type}
+      </span>
+      <span className="flex-1 truncate text-zinc-600 dark:text-zinc-400">
+        {rest
+          .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+          .join(" · ")}
+      </span>
     </div>
   );
 }
