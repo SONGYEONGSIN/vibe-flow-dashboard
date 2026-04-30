@@ -41,6 +41,24 @@ type InboxSummary = {
   unread_total: number;
 };
 
+type StructureNode = {
+  name: string;
+  count: number;
+  detail?: string;
+  exists: boolean;
+};
+
+type Structure = {
+  project_dir: string;
+  has_claude: boolean;
+  nodes: StructureNode[];
+  state?: {
+    vibe_flow_version?: string;
+    installed_at?: string;
+    extensions: string[];
+  };
+};
+
 type Metrics = {
   analyzed_events: number;
   period_days: number;
@@ -59,12 +77,14 @@ const MAX_EVENTS = 200;
 const PLANS_POLL_MS = 10_000;
 const INBOX_POLL_MS = 15_000;
 const METRICS_POLL_MS = 30_000;
+const STRUCTURE_POLL_MS = 60_000;
 
 export default function Home() {
   const [events, setEvents] = useState<EventLine[]>([]);
   const [plans, setPlans] = useState<ActivePlan[]>([]);
   const [inbox, setInbox] = useState<InboxSummary | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [structure, setStructure] = useState<Structure | null>(null);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -126,6 +146,27 @@ export default function Home() {
     };
     fetchMetrics();
     const id = setInterval(fetchMetrics, METRICS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
+  // Structure polling (60s)
+  useEffect(() => {
+    let cancelled = false;
+    const fetchStructure = async () => {
+      try {
+        const res = await fetch("/api/structure");
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as Structure;
+        setStructure(data);
+      } catch {
+        /* ignore */
+      }
+    };
+    fetchStructure();
+    const id = setInterval(fetchStructure, STRUCTURE_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);
@@ -380,23 +421,66 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              🗂 .claude/ 구조{" "}
+              {structure?.state ? (
+                <span className="ml-2 text-xs font-normal text-zinc-500">
+                  vibe-flow {structure.state.vibe_flow_version} · ext{" "}
+                  {structure.state.extensions.length}
+                </span>
+              ) : null}
+            </h2>
+          </div>
+          {!structure ? (
+            <div className="p-6 text-center text-sm text-zinc-500">
+              로딩 중...
+            </div>
+          ) : !structure.has_claude ? (
+            <div className="p-6 text-center text-sm text-zinc-500">
+              .claude/ 없음 ({structure.project_dir})
+            </div>
+          ) : (
+            <div className="divide-y divide-zinc-100 text-sm dark:divide-zinc-900">
+              {structure.nodes.map((n) => (
+                <div
+                  key={n.name}
+                  className={`flex items-center justify-between px-4 py-2 ${
+                    n.exists ? "" : "opacity-40"
+                  }`}
+                >
+                  <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                    {n.name}
+                  </span>
+                  <span className="flex items-baseline gap-2 text-xs">
+                    <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
+                      {n.count}
+                    </span>
+                    {n.detail && (
+                      <span className="text-zinc-500">{n.detail}</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+              {structure.state && structure.state.extensions.length > 0 && (
+                <div className="bg-zinc-50 px-4 py-2 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+                  활성 extensions: {structure.state.extensions.join(", ")}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         <footer className="mt-6 text-xs text-zinc-500">
           <p>
             데이터 소스:{" "}
             <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-              {`$VIBE_FLOW_PROJECT/.claude/events.jsonl`}
+              {`$VIBE_FLOW_PROJECT/.claude/`}
             </code>
           </p>
           <p className="mt-1">
-            Phase C 다음:{" "}
-            <a
-              href="https://github.com/SONGYEONGSIN/vibe-flow-dashboard#로드맵"
-              className="underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              활성 plan / inbox / 메트릭 / .claude 시각화
-            </a>
+            Phase C 완료 — 활성 plan ✓ / inbox ✓ / 메트릭 ✓ / .claude 시각화 ✓
           </p>
         </footer>
       </main>
