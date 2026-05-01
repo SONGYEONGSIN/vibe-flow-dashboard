@@ -47,7 +47,8 @@ export type ReducerAction =
   | { type: "ARRIVE"; agent: AgentId }
   | { type: "JUMP_END"; agent: AgentId }
   | { type: "RETURN_HOME"; agent: AgentId }
-  | { type: "BUBBLE_EXPIRE"; now: number };
+  | { type: "BUBBLE_EXPIRE"; now: number }
+  | { type: "STAGE_CHANGE"; stage: number };
 
 function update(states: CharacterState[], id: AgentId, patch: Partial<CharacterState>): CharacterState[] {
   return states.map((s) => (s.id === id ? { ...s, ...patch } : s));
@@ -126,6 +127,14 @@ export function characterReducer(states: CharacterState[], action: ReducerAction
         if (s.bubble.expiresAt <= action.now) return { ...s, bubble: null };
         return s;
       });
+    }
+
+    case "STAGE_CHANGE": {
+      // stage 변화 시 unlocked 필드만 갱신 (다른 상태는 보존)
+      return states.map((s) => ({
+        ...s,
+        unlocked: isUnlocked(s.id, action.stage),
+      }));
     }
 
     default: {

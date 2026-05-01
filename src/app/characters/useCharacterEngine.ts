@@ -56,6 +56,12 @@ export function useCharacterEngine({ stage, dialoguePool }: Options) {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
+  // stage prop 변화 시 unlocked 필드 갱신 (state 보존)
+  useEffect(() => {
+    if (stage === null || stage === undefined) return;
+    dispatch({ type: "STAGE_CHANGE", stage });
+  }, [stage]);
+
   const pushFeed = useCallback((entry: Omit<FeedEntry, "id">) => {
     seqRef.current += 1;
     const id = `${entry.at}-${seqRef.current}`;
