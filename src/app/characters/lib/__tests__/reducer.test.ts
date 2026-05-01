@@ -1,6 +1,6 @@
 // src/app/characters/lib/__tests__/reducer.test.ts
 import { describe, it, expect } from "vitest";
-import { initialStates, characterReducer, type CharacterState } from "@/app/characters/lib/reducer";
+import { initialStates, characterReducer, isActive, ACTIVE_TTL_MS, type CharacterState } from "@/app/characters/lib/reducer";
 
 describe("characterReducer", () => {
   it("initialStates — 12 캐릭터, home에서 idle", () => {
@@ -87,5 +87,37 @@ describe("characterReducer", () => {
     const grader = next.find((c) => c.id === "grader")!;
     expect(grader.action).toBe("idle"); // 변화 없음
     expect(grader.bubble).toBeNull();
+  });
+
+  it("INSTRUCTION이 lastEventAt 갱신", () => {
+    const s = initialStates(2);
+    const planner = s.find((c) => c.id === "planner")!;
+    expect(planner.lastEventAt).toBeNull();
+    const next = characterReducer(s, {
+      type: "INSTRUCTION",
+      instruction: { agent: "planner", action: "jump", dialogueKey: "tool_pass" },
+      bubbleText: "ok",
+      now: 5000,
+    });
+    expect(next.find((c) => c.id === "planner")!.lastEventAt).toBe(5000);
+  });
+
+  it("isActive — TTL 안이면 true, 후면 false, null이면 false", () => {
+    const baseState: CharacterState = {
+      id: "planner",
+      home: { x: 0, y: 0 },
+      position: { x: 0, y: 0 },
+      facing: "right",
+      action: "idle",
+      bubble: null,
+      usageCount: 0,
+      unlocked: true,
+      lastEventAt: 1000,
+    };
+    expect(isActive(baseState, 1500)).toBe(true);
+    expect(isActive(baseState, 1000 + ACTIVE_TTL_MS - 1)).toBe(true);
+    expect(isActive(baseState, 1000 + ACTIVE_TTL_MS)).toBe(false);
+    expect(isActive(baseState, 1000 + ACTIVE_TTL_MS + 100)).toBe(false);
+    expect(isActive({ ...baseState, lastEventAt: null }, 1500)).toBe(false);
   });
 });

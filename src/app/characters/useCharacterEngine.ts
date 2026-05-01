@@ -1,10 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef } from "react";
-import { mapEvent } from "./data/event-map";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { mapEvent, type ActionInstruction } from "./data/event-map";
 import { pickLine, shouldShowWanderBubble, type DialoguePool } from "./lib/dialogue";
 import { nextWanderPosition } from "./lib/wander";
-import { characterReducer, initialStates, type CharacterState, BUBBLE_TTL_MS } from "./lib/reducer";
+import {
+  characterReducer,
+  initialStates,
+  ACTIVE_TTL_MS,
+  type CharacterState,
+} from "./lib/reducer";
+import type { AgentId } from "./data/agents";
 import type { RawEvent } from "./useEventsStream";
 
 type Options = {
@@ -17,17 +23,43 @@ const WANDER_MAX_MS = 15_000;
 const ARRIVE_MS = 600; // walk transition 시간 + 약간 여유
 const JUMP_MS = 500;
 const BUBBLE_SWEEP_MS = 1_000;
+const ACTIVITY_TICK_MS = 1_000;
+const FEED_MAX = 8;
+
+export type FeedEntry = {
+  id: string;            // unique key for React
+  kind: "active" | "waiting";
+  agent: AgentId;
+  message: string;       // e.g., "prettier pass" or "활동 종료"
+  at: number;
+};
 
 export function useCharacterEngine({ stage, dialoguePool }: Options) {
   const [states, dispatch] = useReducer(characterReducer, stage, initialStates);
   const lastUsedRef = useRef<Map<string, string[]>>(new Map());
+  const [now, setNow] = useState<number>(() => Date.now());
+  const [feed, setFeed] = useState<FeedEntry[]>([]);
+  const wasActiveRef = useRef<Set<AgentId>>(new Set());
+  const seqRef = useRef<number>(0);
+
+  const pushFeed = useCallback((entry: Omit<FeedEntry, "id">) => {
+    seqRef.current += 1;
+    const id = `${entry.at}-${seqRef.current}`;
+    setFeed((prev) => [{ ...entry, id }, ...prev].slice(0, FEED_MAX));
+  }, []);
 
   const handleEvent = useCallback((event: RawEvent) => {
     const instructions = mapEvent(event);
-    const now = Date.now();
+    const eventNow = Date.now();
     for (const inst of instructions) {
       const text = pickLine(dialoguePool, inst.agent, inst.dialogueKey, lastUsedRef.current);
-      dispatch({ type: "INSTRUCTION", instruction: inst, bubbleText: text, now });
+      dispatch({ type: "INSTRUCTION", instruction: inst, bubbleText: text, now: eventNow });
+      pushFeed({
+        kind: "active",
+        agent: inst.agent,
+        message: feedMessageFor(inst, event),
+        at: eventNow,
+      });
 
       if (inst.action === "jump" || inst.action === "clap") {
         setTimeout(() => dispatch({ type: "JUMP_END", agent: inst.agent }), JUMP_MS);
@@ -36,7 +68,7 @@ export function useCharacterEngine({ stage, dialoguePool }: Options) {
         setTimeout(() => dispatch({ type: "ARRIVE", agent: inst.agent }), ARRIVE_MS);
       }
     }
-  }, [dialoguePool]);
+  }, [dialoguePool, pushFeed]);
 
   // bubble sweep
   useEffect(() => {
@@ -90,5 +122,52 @@ export function useCharacterEngine({ stage, dialoguePool }: Options) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { states, handleEvent };
+  // activity tick — 1s마다 now 갱신 (active state pulse 페이드용 + transitions 감지)
+  useEffect(() => {
+    const id = setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+
+      // active → waiting 전이 감지
+      const currentlyActive = new Set<AgentId>();
+      for (const s of states) {
+        if (s.lastEventAt !== null && t - s.lastEventAt < ACTIVE_TTL_MS) {
+          currentlyActive.add(s.id);
+        }
+      }
+      // 직전 tick에 active였는데 지금 waiting이면 feed에 push
+      for (const id of wasActiveRef.current) {
+        if (!currentlyActive.has(id)) {
+          pushFeed({
+            kind: "waiting",
+            agent: id,
+            message: "활동 종료 → 대기",
+            at: t,
+          });
+        }
+      }
+      wasActiveRef.current = currentlyActive;
+    }, ACTIVITY_TICK_MS);
+    return () => clearInterval(id);
+  }, [states, pushFeed]);
+
+  return { states, handleEvent, now, feed };
+}
+
+function feedMessageFor(inst: ActionInstruction, event: RawEvent): string {
+  const type = String(event.type ?? "");
+  const tool = String(event.tool ?? "");
+  const status = String(event.status ?? "");
+
+  if (type === "tool_result") {
+    return tool ? `${tool} ${status}` : `tool ${status}`;
+  }
+  if (type === "verify_complete") {
+    const overall = String(event.overall ?? "");
+    return `verify ${overall}`;
+  }
+  if (type === "error") {
+    return `${tool || "tool"} error`;
+  }
+  return inst.dialogueKey;
 }

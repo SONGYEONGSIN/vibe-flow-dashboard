@@ -4,6 +4,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Stage } from "./Stage";
+import { ActivityFeed } from "./ActivityFeed";
 import { useCharacterEngine } from "./useCharacterEngine";
 import { useEventsStream } from "./useEventsStream";
 import dialoguePoolRaw from "./data/dialogue-pool.json";
@@ -17,7 +18,7 @@ type Props = {
 
 export function CharacterPage({ initialStage }: Props) {
   const [connected, setConnected] = useState(false);
-  const { states, handleEvent } = useCharacterEngine({
+  const { states, handleEvent, now, feed } = useCharacterEngine({
     stage: initialStage,
     dialoguePool,
   });
@@ -55,8 +56,9 @@ export function CharacterPage({ initialStage }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-8 py-6">
-        <Stage states={states} currentStage={initialStage} />
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 px-8 py-6">
+        <Stage states={states} currentStage={initialStage} now={now} />
+        <ActivityFeed feed={feed} now={now} />
         <div className="text-xs text-zinc-500">
           캐릭터를 보고 싶은데 비어있다면: 사용자 프로젝트에서 코드 변경/테스트 실행 시 events.jsonl이 생성되며 캐릭터들이 반응합니다.
         </div>

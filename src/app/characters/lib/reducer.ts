@@ -13,9 +13,16 @@ export type CharacterState = {
   bubble: { text: string; expiresAt: number } | null;
   usageCount: number;
   unlocked: boolean;
+  lastEventAt: number | null;       // 마지막 이벤트 트리거 시각 (ms epoch)
 };
 
 export const BUBBLE_TTL_MS = 4000;
+export const ACTIVE_TTL_MS = 20_000;   // 마지막 이벤트 후 N초 동안 'active' 상태 유지
+
+export function isActive(state: CharacterState, now: number): boolean {
+  if (state.lastEventAt === null) return false;
+  return now - state.lastEventAt < ACTIVE_TTL_MS;
+}
 
 export function initialStates(stage: number | null | undefined): CharacterState[] {
   return AGENTS.map((meta, idx) => {
@@ -29,6 +36,7 @@ export function initialStates(stage: number | null | undefined): CharacterState[
       bubble: null,
       usageCount: 0,
       unlocked: isUnlocked(meta.id, stage),
+      lastEventAt: null,
     };
   });
 }
@@ -60,15 +68,16 @@ export function characterReducer(states: CharacterState[], action: ReducerAction
         ? { text: action.bubbleText, expiresAt: action.now + BUBBLE_TTL_MS }
         : me.bubble;
       const usage = me.usageCount + 1;
+      const lastEventAt = action.now;
 
       if (inst.action === "jump") {
-        return update(states, inst.agent, { action: "jump", bubble, usageCount: usage });
+        return update(states, inst.agent, { action: "jump", bubble, usageCount: usage, lastEventAt });
       }
       if (inst.action === "clap") {
-        return update(states, inst.agent, { action: "clap", bubble, usageCount: usage });
+        return update(states, inst.agent, { action: "clap", bubble, usageCount: usage, lastEventAt });
       }
       if (inst.action === "idle") {
-        return update(states, inst.agent, { action: "idle", bubble, usageCount: usage });
+        return update(states, inst.agent, { action: "idle", bubble, usageCount: usage, lastEventAt });
       }
       if (inst.action === "walk-to" && inst.target) {
         const target = findState(states, inst.target);
@@ -81,6 +90,7 @@ export function characterReducer(states: CharacterState[], action: ReducerAction
           facing,
           bubble,
           usageCount: usage,
+          lastEventAt,
         });
       }
       return states;
