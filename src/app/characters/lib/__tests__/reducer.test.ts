@@ -102,6 +102,35 @@ describe("characterReducer", () => {
     expect(next.find((c) => c.id === "planner")!.lastEventAt).toBe(5000);
   });
 
+  it("STAGE_CHANGE — unlocked 필드만 갱신, 다른 state 보존", () => {
+    let s = initialStates(0); // 초기: developer/qa 잠금
+    expect(s.find((c) => c.id === "developer")!.unlocked).toBe(false);
+
+    // 이벤트 발생 → bubble 추가
+    s = characterReducer(s, {
+      type: "INSTRUCTION",
+      instruction: { agent: "planner", action: "jump", dialogueKey: "tool_pass" },
+      bubbleText: "test",
+      now: 1000,
+    });
+    const plannerBefore = s.find((c) => c.id === "planner")!;
+    expect(plannerBefore.bubble).not.toBeNull();
+    expect(plannerBefore.lastEventAt).toBe(1000);
+
+    // Stage 2로 변경
+    const s2 = characterReducer(s, { type: "STAGE_CHANGE", stage: 2 });
+
+    // unlocked 갱신
+    expect(s2.find((c) => c.id === "developer")!.unlocked).toBe(true);
+    expect(s2.find((c) => c.id === "validator")!.unlocked).toBe(true);
+    expect(s2.find((c) => c.id === "security")!.unlocked).toBe(false); // Stage 3
+
+    // 다른 state 보존
+    const plannerAfter = s2.find((c) => c.id === "planner")!;
+    expect(plannerAfter.bubble).toEqual(plannerBefore.bubble);
+    expect(plannerAfter.lastEventAt).toBe(1000);
+  });
+
   it("isActive — TTL 안이면 true, 후면 false, null이면 false", () => {
     const baseState: CharacterState = {
       id: "planner",
