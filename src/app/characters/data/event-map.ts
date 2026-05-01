@@ -18,11 +18,66 @@ const TOOL_TO_AGENT: Record<string, AgentId> = {
   vitest: "qa",
   playwright: "qa",
 };
+
+// 스킬 이름(또는 그 prefix) → 담당 에이전트 매핑.
+// 매칭 안 되면 FALLBACK_AGENT.
+const SKILL_TO_AGENT: Record<string, AgentId> = {
+  // planner
+  plan: "planner",
+  brainstorm: "planner",
+  scaffold: "planner",
+  onboard: "planner",
+  finish: "planner",
+  // designer
+  "design-sync": "designer",
+  // developer
+  commit: "developer",
+  release: "developer",
+  // qa
+  test: "qa",
+  verify: "qa",
+  "fewer-permission-prompts": "qa",
+  // security
+  security: "security",
+  "security-review": "security",
+  // validator
+  review: "validator",
+  "review-pr": "validator",
+  "receive-review": "validator",
+  // feedback
+  feedback: "feedback",
+  // moderator
+  pair: "moderator",
+  discuss: "moderator",
+  menu: "moderator",
+  worktree: "moderator",
+  budget: "moderator",
+  "writing-plans": "moderator",
+  "executing-plans": "moderator",
+  // comparator
+  evolve: "comparator",
+  // retrospective
+  retrospective: "retrospective",
+  retro: "retrospective",
+  learn: "retrospective",
+  // grader
+  telemetry: "grader",
+  status: "grader",
+  inbox: "grader",
+  // skill-reviewer
+  "skill-creator": "skill-reviewer",
+  init: "skill-reviewer",
+};
 const FALLBACK_AGENT: AgentId = "moderator";
 
 function agentForTool(tool: string | undefined): AgentId {
   if (!tool) return FALLBACK_AGENT;
   return TOOL_TO_AGENT[tool] ?? FALLBACK_AGENT;
+}
+
+function agentForSkill(skill: string | undefined): AgentId {
+  if (!skill) return FALLBACK_AGENT;
+  return SKILL_TO_AGENT[skill] ?? FALLBACK_AGENT;
 }
 
 type RawEvent = Record<string, unknown>;
@@ -69,6 +124,12 @@ export function mapEvent(event: RawEvent): ActionInstruction[] {
       { agent: "qa", action: "walk-to", target, dialogueKey: "bug_found" },
       { agent: target, action: "idle", dialogueKey: "tool_fail" },
     ];
+  }
+
+  if (type === "skill_invoked") {
+    const skill = String(event.skill ?? "");
+    const agent = agentForSkill(skill);
+    return [{ agent, action: "jump", dialogueKey: "skill_invoked" }];
   }
 
   return [];

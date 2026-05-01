@@ -53,4 +53,32 @@ describe("event-map", () => {
     const r = mapEvent({ type: "garbage" });
     expect(r).toEqual([]);
   });
+
+  it("skill_invoked /commit → developer jump", () => {
+    const r = mapEvent({ type: "skill_invoked", skill: "commit" });
+    expect(r).toEqual([
+      { agent: "developer", action: "jump", dialogueKey: "skill_invoked" },
+    ]);
+  });
+
+  it("skill_invoked /pair → moderator jump", () => {
+    const r = mapEvent({ type: "skill_invoked", skill: "pair" });
+    expect(r[0].agent).toBe("moderator");
+    expect(r[0].action).toBe("jump");
+  });
+
+  it("skill_invoked /retrospective → retrospective jump", () => {
+    const r = mapEvent({ type: "skill_invoked", skill: "retrospective" });
+    expect(r[0].agent).toBe("retrospective");
+  });
+
+  it("skill_invoked unknown skill → moderator fallback", () => {
+    const r = mapEvent({ type: "skill_invoked", skill: "mystery_skill" });
+    expect(r[0].agent).toBe("moderator");
+  });
+
+  it("skill_invoked 빈 skill → moderator fallback", () => {
+    const r = mapEvent({ type: "skill_invoked" });
+    expect(r[0].agent).toBe("moderator");
+  });
 });
