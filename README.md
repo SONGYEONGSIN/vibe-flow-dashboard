@@ -80,6 +80,18 @@ vibe-flow 프로젝트 (.claude/)
 - Tailwind CSS 4
 - chokidar 5 (file watcher)
 
+## /characters
+
+12 에이전트가 events.jsonl에 반응하는 캐릭터 무대.
+
+- 단일 픽셀 룸 + 12 chibi 캐릭터 (48×48 sprite slot)
+- L2 light wander (5~15s) + L3 event-driven 이동
+- 정적 대사 풀 (`src/app/characters/data/dialogue-pool.json`)
+- Stage unlock (`.vibe-flow.json`의 `stage` 필드 0~4)
+- 에셋: `public/sprites/<agent>-{idle,walk}-{l,r}.png` (현재 placeholder transparent — 실제 픽셀 캐릭터 PNG로 교체 시 코드 변경 없이 적용)
+
+설계: vibe-flow repo의 `docs/superpowers/specs/2026-04-30-dynamic-character-system-design.md` 참고.
+
 ## 로드맵
 
 ### v1.0.0 — 완료

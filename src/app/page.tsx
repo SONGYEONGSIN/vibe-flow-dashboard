@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 type EventLine = {
   raw: string;
@@ -222,6 +223,12 @@ export default function Home() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/characters"
+              className="mr-3 text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              🎮 Characters
+            </Link>
             <span
               className={`inline-block h-2 w-2 rounded-full ${
                 connected ? "bg-green-500" : "bg-red-500"
