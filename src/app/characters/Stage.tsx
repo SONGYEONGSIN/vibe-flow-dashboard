@@ -18,9 +18,10 @@ const STAGE_INFO = [
 type Props = {
   states: CharacterState[];
   currentStage: number;
+  now: number;
 };
 
-export function Stage({ states, currentStage }: Props) {
+export function Stage({ states, currentStage, now }: Props) {
   return (
     <div className="mx-auto w-full max-w-5xl rounded-lg border-2 border-zinc-800 bg-zinc-900 p-2">
       <div
@@ -102,7 +103,7 @@ export function Stage({ states, currentStage }: Props) {
                   : "none",
             }}
           >
-            <Character state={s} />
+            <Character state={s} now={now} />
           </div>
         ))}
       </div>
