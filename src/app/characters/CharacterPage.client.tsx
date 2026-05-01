@@ -56,7 +56,7 @@ export function CharacterPage({ initialStage }: Props) {
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-8 py-6">
-        <Stage states={states} />
+        <Stage states={states} currentStage={initialStage} />
         <div className="text-xs text-zinc-500">
           캐릭터를 보고 싶은데 비어있다면: 사용자 프로젝트에서 코드 변경/테스트 실행 시 events.jsonl이 생성되며 캐릭터들이 반응합니다.
         </div>
