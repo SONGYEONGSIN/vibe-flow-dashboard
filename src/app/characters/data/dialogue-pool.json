@@ -2,7 +2,6 @@
   "planner": {
     "tool_pass":   ["계획대로다", "다음 단계 OK", "흠... 좋아"],
     "tool_fail":   ["다시 짜자", "계획 수정"],
-    "investigation": ["루트 캐스 찾자"],
     "wander":      ["다음은…", "📋"]
   },
   "designer": {

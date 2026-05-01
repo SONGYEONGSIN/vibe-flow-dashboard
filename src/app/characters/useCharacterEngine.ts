@@ -25,6 +25,7 @@ const JUMP_MS = 500;
 const BUBBLE_SWEEP_MS = 1_000;
 const ACTIVITY_TICK_MS = 1_000;
 const FEED_MAX = 8;
+const RETURN_HOME_MS = 20_000; // walk-to 후 N초 뒤 home 복귀
 
 export type FeedEntry = {
   id: string;            // unique key for React
@@ -41,6 +42,19 @@ export function useCharacterEngine({ stage, dialoguePool }: Options) {
   const [feed, setFeed] = useState<FeedEntry[]>([]);
   const wasActiveRef = useRef<Set<AgentId>>(new Set());
   const seqRef = useRef<number>(0);
+  // 탭 백그라운드 시 wander/activity tick 일시정지 (배터리/CPU 절약)
+  const pausedRef = useRef<boolean>(false);
+
+  // visibilitychange listener
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onVis = () => {
+      pausedRef.current = document.hidden;
+    };
+    pausedRef.current = document.hidden;
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
 
   const pushFeed = useCallback((entry: Omit<FeedEntry, "id">) => {
     seqRef.current += 1;
@@ -65,7 +79,11 @@ export function useCharacterEngine({ stage, dialoguePool }: Options) {
         setTimeout(() => dispatch({ type: "JUMP_END", agent: inst.agent }), JUMP_MS);
       }
       if (inst.action === "walk-to") {
+        // 도착 후 idle
         setTimeout(() => dispatch({ type: "ARRIVE", agent: inst.agent }), ARRIVE_MS);
+        // 일정 시간 후 home 복귀 (action=walk + position=home), 그 다음 ARRIVE로 idle
+        setTimeout(() => dispatch({ type: "RETURN_HOME", agent: inst.agent }), RETURN_HOME_MS);
+        setTimeout(() => dispatch({ type: "ARRIVE", agent: inst.agent }), RETURN_HOME_MS + ARRIVE_MS);
       }
     }
   }, [dialoguePool, pushFeed]);
@@ -86,6 +104,11 @@ export function useCharacterEngine({ stage, dialoguePool }: Options) {
       if (!agent.unlocked) return;
       const delay = WANDER_MIN_MS + Math.random() * (WANDER_MAX_MS - WANDER_MIN_MS);
       const t = setTimeout(() => {
+        // 탭 hidden 상태면 wander 스킵 + 다음 tick 재예약
+        if (pausedRef.current) {
+          scheduleWander(agent);
+          return;
+        }
         const pos = nextWanderPosition(agent.home);
         dispatch({ type: "WANDER_TICK", agent: agent.id, newPosition: pos });
 
@@ -125,6 +148,8 @@ export function useCharacterEngine({ stage, dialoguePool }: Options) {
   // activity tick — 1s마다 now 갱신 (active state pulse 페이드용 + transitions 감지)
   useEffect(() => {
     const id = setInterval(() => {
+      // 탭 hidden 상태면 tick 스킵
+      if (pausedRef.current) return;
       const t = Date.now();
       setNow(t);
 
