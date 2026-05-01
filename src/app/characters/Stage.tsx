@@ -8,10 +8,10 @@ import { AGENTS } from "./data/agents";
 const WALK_TRANSITION_MS = 600;
 
 const STAGE_INFO = [
-  { stage: 0, name: "신규",       desc: "처음 도입" },
+  { stage: 0, name: "기획·디자인", desc: "계획 + UI 단계" },
   { stage: 1, name: "도구 사용",   desc: "코드 + 테스트 단계" },
   { stage: 2, name: "협업",       desc: "/pair, /discuss 사용" },
-  { stage: 3, name: "자가 평가",   desc: "보안 / 비교 / 회고" },
+  { stage: 3, name: "자가 평가",   desc: "보안 + 비교 + 회고" },
   { stage: 4, name: "자가 진화",   desc: "extension 영역" },
 ];
 
