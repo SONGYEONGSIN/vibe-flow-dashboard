@@ -15,13 +15,14 @@ type Props = {
 
 export function Character({ state, now }: Props) {
   const meta = AGENT_MAP[state.id];
-  const jumpY = state.action === "jump" ? -12 : 0;
+  // jump와 clap 모두 살짝 위로 들어올림 (현재 별도 sprite 없음 — 시각 일관성 위해 동일 처리)
+  const jumpY = state.action === "jump" || state.action === "clap" ? -12 : 0;
   const flip = state.facing === "left" ? "scaleX(-1)" : "";
   const active = state.unlocked && isActive(state, now);
 
   return (
     <div
-      className="absolute"
+      className="vf-character-root absolute"
       style={{
         width: SLOT_WIDTH,
         height: SLOT_HEIGHT,
@@ -74,7 +75,7 @@ export function Character({ state, now }: Props) {
         )}
       </span>
 
-      {/* keyframes 인라인 */}
+      {/* keyframes (전역 reduced-motion은 CharacterPage에서 한 번에 처리) */}
       <style>{`
         @keyframes vfPulse {
           0%, 100% { opacity: 0.55; transform: scale(1); }

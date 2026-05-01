@@ -29,7 +29,18 @@ export function CharacterPage({ initialStage }: Props) {
   });
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 font-sans dark:bg-black">
+    <div className="vf-characters-page flex min-h-screen flex-col bg-zinc-50 font-sans dark:bg-black">
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .vf-characters-page,
+          .vf-characters-page *,
+          .vf-characters-page *::before,
+          .vf-characters-page *::after {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+      `}</style>
       <header className="border-b border-zinc-200 bg-white px-8 py-4 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div>
