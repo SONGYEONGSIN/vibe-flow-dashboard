@@ -142,6 +142,7 @@ describe("characterReducer", () => {
       usageCount: 0,
       unlocked: true,
       lastEventAt: 1000,
+      autoStage: 0,
     };
     expect(isActive(baseState, 1500)).toBe(true);
     expect(isActive(baseState, 1000 + ACTIVE_TTL_MS - 1)).toBe(true);

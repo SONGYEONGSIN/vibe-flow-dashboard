@@ -86,6 +86,23 @@ class EventsWatcher extends EventEmitter {
   }
 }
 
+/** events.jsonl 전체 라인 반환. 파일 부재 시 []. server component에서 카운트 bootstrap 용. */
+export async function readAllEvents(): Promise<EventLine[]> {
+  const eventsPath = getEventsPath();
+  if (!existsSync(eventsPath)) return [];
+  const text = await fs.readFile(eventsPath, "utf-8");
+  const lines = text.split("\n").filter((l) => l.trim().length > 0);
+  return lines.map((raw) => {
+    const event: EventLine = { raw };
+    try {
+      event.parsed = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      /* noop */
+    }
+    return event;
+  });
+}
+
 // 모듈 레벨 singleton (Node.js module 1회 로드 보장)
 const globalForWatcher = globalThis as unknown as {
   __vfWatcher?: EventsWatcher;
