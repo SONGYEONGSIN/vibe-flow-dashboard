@@ -1,21 +1,30 @@
 // src/app/characters/CharacterPage.client.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Stage } from "./Stage";
 import { ActivityFeed } from "./ActivityFeed";
 import { useCharacterEngine } from "./useCharacterEngine";
 import { useEventsStream } from "./useEventsStream";
+import { useStageCounts } from "./useStageCounts";
 import dialoguePoolRaw from "./data/dialogue-pool.json";
 import type { DialoguePool } from "./lib/dialogue";
+import { AGENTS, type AgentId } from "./data/agents";
 
 const dialoguePool = dialoguePoolRaw as DialoguePool;
 const STAGE_STORAGE_KEY = "vf.characters.stage.override";
 
 type Props = {
   initialStage: number;
+  initialCounts: Record<AgentId, number>;
 };
+
+function forceStagesAll(value: number): Record<AgentId, number> {
+  const out = {} as Record<AgentId, number>;
+  for (const a of AGENTS) out[a.id] = value;
+  return out;
+}
 
 function loadStoredStage(): number | null {
   if (typeof window === "undefined") return null;
@@ -27,11 +36,19 @@ function loadStoredStage(): number | null {
   return n;
 }
 
-export function CharacterPage({ initialStage }: Props) {
+export function CharacterPage({ initialStage, initialCounts }: Props) {
   const [connected, setConnected] = useState(false);
   // override가 있으면 우선, 없으면 .vibe-flow.json의 initialStage 사용
   const [stage, setStage] = useState<number>(initialStage);
   const [hasOverride, setHasOverride] = useState<boolean>(false);
+
+  const { stages: autoStages, ingest } = useStageCounts({ initialCounts });
+
+  // override 모드 시 모든 캐릭터에 글로벌 stage 강제 (preview 의미). 해제 시 자동 stages 복귀.
+  const effectiveAutoStages = useMemo(
+    () => (hasOverride ? forceStagesAll(stage) : autoStages),
+    [hasOverride, stage, autoStages],
+  );
 
   // 마운트 시 localStorage 복원
   useEffect(() => {
@@ -57,10 +74,19 @@ export function CharacterPage({ initialStage }: Props) {
   const { states, handleEvent, now, feed } = useCharacterEngine({
     stage,
     dialoguePool,
+    autoStages: effectiveAutoStages,
   });
 
+  const onEvent = useCallback(
+    (event: Record<string, unknown>) => {
+      handleEvent(event);
+      ingest(event);
+    },
+    [handleEvent, ingest],
+  );
+
   useEventsStream({
-    onEvent: handleEvent,
+    onEvent,
     onConnectionChange: setConnected,
   });
 
