@@ -64,6 +64,7 @@ const SKILL_TO_AGENT: Record<string, AgentId> = {
   telemetry: "grader",
   status: "grader",
   inbox: "grader",
+  "perf-audit": "qa",
   // skill-reviewer
   "skill-creator": "skill-reviewer",
   init: "skill-reviewer",
@@ -130,6 +131,32 @@ export function mapEvent(event: RawEvent): ActionInstruction[] {
     const skill = String(event.skill ?? "");
     const agent = agentForSkill(skill);
     return [{ agent, action: "jump", dialogueKey: "skill_invoked" }];
+  }
+
+  // /inbox send 위임 결과 — 수신 에이전트가 메시지 받음 표시 (jump)
+  if (type === "inbox_sent") {
+    const to = event.to ? String(event.to) : "";
+    // to가 알려진 에이전트인지 SKILL_TO_AGENT의 value 집합으로 검증 (안 알려져도 fallback X — 수신자 명시되지 않으면 무시)
+    const knownAgents = new Set<AgentId>(Object.values(SKILL_TO_AGENT));
+    if (to && knownAgents.has(to as AgentId)) {
+      return [{ agent: to as AgentId, action: "jump", dialogueKey: "skill_invoked" }];
+    }
+    // to 누락 또는 미상 에이전트 → moderator fallback
+    return [{ agent: FALLBACK_AGENT, action: "jump", dialogueKey: "skill_invoked" }];
+  }
+
+  // /perf-audit 결과 — verdict 기반 분기
+  if (type === "perf_audit") {
+    const verdict = String(event.verdict ?? "");
+    if (verdict === "PASS") {
+      return [{ agent: "qa", action: "jump", dialogueKey: "tool_pass" }];
+    }
+    if (verdict === "WARN" || verdict === "FAIL") {
+      return [
+        { agent: "qa", action: "idle", dialogueKey: "tool_fail" },
+        { agent: "designer", action: "walk-to", target: "qa", dialogueKey: "investigation" },
+      ];
+    }
   }
 
   return [];
