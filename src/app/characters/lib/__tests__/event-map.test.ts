@@ -81,4 +81,37 @@ describe("event-map", () => {
     const r = mapEvent({ type: "skill_invoked" });
     expect(r[0].agent).toBe("moderator");
   });
+
+  it("inbox_sent → 수신자 jump", () => {
+    const r = mapEvent({ type: "inbox_sent", to: "developer", msg_type: "info", priority: "medium" });
+    expect(r).toEqual([
+      { agent: "developer", action: "jump", dialogueKey: "skill_invoked" },
+    ]);
+  });
+
+  it("inbox_sent 미상 수신자 → moderator fallback", () => {
+    const r = mapEvent({ type: "inbox_sent", to: "unknown-agent" });
+    expect(r[0].agent).toBe("moderator");
+    expect(r[0].action).toBe("jump");
+  });
+
+  it("perf_audit verdict=PASS → qa jump", () => {
+    const r = mapEvent({ type: "perf_audit", verdict: "PASS", score: 95 });
+    expect(r).toEqual([
+      { agent: "qa", action: "jump", dialogueKey: "tool_pass" },
+    ]);
+  });
+
+  it("perf_audit verdict=FAIL → qa idle + designer walk-to qa", () => {
+    const r = mapEvent({ type: "perf_audit", verdict: "FAIL", score: 30 });
+    expect(r).toContainEqual({ agent: "qa", action: "idle", dialogueKey: "tool_fail" });
+    expect(r).toContainEqual({ agent: "designer", action: "walk-to", target: "qa", dialogueKey: "investigation" });
+  });
+
+  it("perf_audit verdict=WARN → qa idle + designer walk-to (FAIL과 동일 처리)", () => {
+    const r = mapEvent({ type: "perf_audit", verdict: "WARN", score: 65 });
+    expect(r.length).toBe(2);
+    expect(r[0].agent).toBe("qa");
+    expect(r[0].action).toBe("idle");
+  });
 });
