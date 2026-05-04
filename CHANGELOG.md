@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.1.0] - 2026-05-04 — 12 에이전트 캐릭터 시스템 (정적 + 자동 진화)
+
+vibe-flow events.jsonl을 12 픽셀 캐릭터로 시각화. 정서적 피드백 루프를 dashboard 핵심 가치로 격상.
+
+### 추가
+
+#### 캐릭터 시스템 본체
+- **12 에이전트 픽셀 룸 무대 (#2)** — Phase D MVP. 12 에이전트(planner/designer/developer/qa/security/validator/feedback/moderator/comparator/retrospective + grader/skill-reviewer)별 픽셀 도트 캐릭터, 단일 룸 stage, reducer + useCharacterEngine 토대.
+- **L2 wander + L3 event 이동 (#2)** — 무작위 idle 행동 + 이벤트 트리거 walk-to/jump/clap/idle 액션. `event-map.ts`의 `mapEvent(rawEvent)` 함수가 events.jsonl 라인을 ActionInstruction으로 변환.
+- **active/waiting 동적 표시 + Activity Feed (#7)** — 캐릭터별 마지막 활동 시각 + 우측 패널 Activity Feed.
+
+#### 이벤트 매핑 확장
+- **`skill_invoked` 이벤트 + 12 캐릭터 skill 대사 (#6)** — `SKILL_TO_AGENT` 매핑 (plan/brainstorm/scaffold/finish→planner, commit/release→developer, test/verify/perf-audit→qa 등). dialogue-pool.json에 `skill_invoked` 컨텍스트 12 캐릭터 분.
+- **`inbox_sent` + `perf_audit` 이벤트 (#9)** — 수신자 jump (inbox), verdict 분기 (perf-audit PASS=qa jump / WARN/FAIL=qa idle + designer walk-to qa).
+- **`sleep_build_*` 3 이벤트 (#11)** — vibe-flow [#30](https://github.com/SONGYEONGSIN/vibe-flow/pull/30) (sleep-build Phase 1) 짝. start→planner clap, done→developer jump, abort→qa idle + planner walk-to qa. Stage 자동 진화 카운트에도 통합 (start→planner, done→developer, abort→qa).
+
+#### Stage 시스템
+- **Stage 어드저스터 UI + localStorage 미리보기 (#8)** — 글로벌 stage 선택기 (0~4), localStorage 영속화, preview 배지.
+- **Stage 자동 진화 — telemetry 기반 에이전트별 시각 차이 ([#10](https://github.com/SONGYEONGSIN/vibe-flow-dashboard/pull/10))** — events.jsonl 카운트 → 에이전트별 Stage(0~4) 자동 결정. CSS box-shadow / saturate / Stage 4 펄스로 시각 차이 (픽셀 변경 0). `prefers-reduced-motion: reduce` respect. 어드저스터 UI는 dev override (글로벌 강제, localStorage 우선 → 자동 fallback). 신규 파일 — `stage-thresholds.json`, `agent-event-map.ts` (카운트 룰), `event-counter.ts`, `stage-calculator.ts`, `useStageCounts.ts`. 90 unit tests.
+
+### 변경
+- **code review polish (#4)** — RETURN_HOME 액션 + clap 추가, a11y prefers-reduced-motion, visibility hidden 시 idle, dead keys 정리.
+
+### 호환
+- ✓ 1.0.0 Phase A/B/C 영역 (events stream / 활성 plan / inbox / 메트릭 / .claude 구조) 모두 유지
+- ✓ events.jsonl 읽기 전용 원칙 유지 (vibe-flow source 침범 0)
+- 신규 영역: `/characters` 페이지 + 캐릭터 시스템 데이터/lib/컴포넌트
+
 ## [1.0.0] - 2026-04-30 — 첫 안정 릴리즈 (Phase A + B + C 완료)
 
 ### 추가
