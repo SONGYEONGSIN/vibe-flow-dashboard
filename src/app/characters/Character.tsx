@@ -13,12 +13,26 @@ type Props = {
   now: number;
 };
 
+// Stage 0~4 시각 효과 매핑 — 픽셀 변경 없이 CSS만 사용
+const STAGE_GLOW_ALPHA = ["00", "44", "66", "99", "cc"]; // hex8 alpha
+const STAGE_GLOW_BLUR = [0, 2, 4, 7, 10];
+const STAGE_GLOW_INSET = [0, -6, -8, -10, -12];
+const STAGE_SATURATE = [1, 1, 1.05, 1.1, 1.15];
+
+function clampStage(s: number | undefined): number {
+  if (typeof s !== "number" || Number.isNaN(s)) return 0;
+  return Math.max(0, Math.min(4, Math.floor(s)));
+}
+
 export function Character({ state, now }: Props) {
   const meta = AGENT_MAP[state.id];
   // jump와 clap 모두 살짝 위로 들어올림 (현재 별도 sprite 없음 — 시각 일관성 위해 동일 처리)
   const jumpY = state.action === "jump" || state.action === "clap" ? -12 : 0;
   const flip = state.facing === "left" ? "scaleX(-1)" : "";
   const active = state.unlocked && isActive(state, now);
+  const stage = clampStage(state.autoStage);
+  const showStageGlow = state.unlocked && stage > 0;
+  const sat = STAGE_SATURATE[stage];
 
   return (
     <div
@@ -31,10 +45,26 @@ export function Character({ state, now }: Props) {
         transform: `translateY(${jumpY}px) scale(${active ? 1.08 : 1})`,
         transition: "transform 300ms ease-out",
         opacity: state.unlocked ? 1 : 0.35,
-        filter: state.unlocked ? "none" : "grayscale(0.6)",
+        filter: state.unlocked
+          ? sat > 1 ? `saturate(${sat})` : "none"
+          : "grayscale(0.6)",
       }}
-      aria-label={`${meta.name} (${state.action})`}
+      aria-label={`${meta.name} (${state.action}, stage ${stage})`}
     >
+      {/* Stage 글로우 — 자기 색 기반 누적 숙련도 표현 (active와 별개 레이어, 아래) */}
+      {showStageGlow && (
+        <span
+          aria-hidden
+          className={`vf-stage-glow absolute${stage === 4 ? " vf-stage-pulse" : ""}`}
+          style={{
+            inset: STAGE_GLOW_INSET[stage],
+            borderRadius: "50%",
+            background: `radial-gradient(closest-side, ${meta.mainColor}${STAGE_GLOW_ALPHA[stage]}, transparent)`,
+            filter: `blur(${STAGE_GLOW_BLUR[stage]}px)`,
+            pointerEvents: "none",
+          }}
+        />
+      )}
       {/* active 글로우 ring */}
       {active && (
         <span
@@ -80,6 +110,16 @@ export function Character({ state, now }: Props) {
         @keyframes vfPulse {
           0%, 100% { opacity: 0.55; transform: scale(1); }
           50%      { opacity: 1;    transform: scale(1.18); }
+        }
+        @keyframes vfStagePulse {
+          0%, 100% { opacity: 0.85; }
+          50%      { opacity: 1; }
+        }
+        .vf-stage-pulse {
+          animation: vfStagePulse 4s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .vf-stage-pulse { animation: none !important; }
         }
       `}</style>
     </div>

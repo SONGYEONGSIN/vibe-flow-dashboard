@@ -16,6 +16,7 @@ import type { RawEvent } from "./useEventsStream";
 type Options = {
   stage: number | null | undefined;
   dialoguePool: DialoguePool;
+  autoStages: Partial<Record<AgentId, number>>;
 };
 
 const WANDER_MIN_MS = 5_000;
@@ -35,7 +36,7 @@ export type FeedEntry = {
   at: number;
 };
 
-export function useCharacterEngine({ stage, dialoguePool }: Options) {
+export function useCharacterEngine({ stage, dialoguePool, autoStages }: Options) {
   const [states, dispatch] = useReducer(characterReducer, stage, initialStates);
   const lastUsedRef = useRef<Map<string, string[]>>(new Map());
   const [now, setNow] = useState<number>(() => Date.now());
@@ -61,6 +62,11 @@ export function useCharacterEngine({ stage, dialoguePool }: Options) {
     if (stage === null || stage === undefined) return;
     dispatch({ type: "STAGE_CHANGE", stage });
   }, [stage]);
+
+  // autoStages 변화 시 reducer에 전파 (변경 없는 키는 reducer가 no-op 처리)
+  useEffect(() => {
+    dispatch({ type: "AUTO_STAGE_UPDATE", stages: autoStages });
+  }, [autoStages]);
 
   const pushFeed = useCallback((entry: Omit<FeedEntry, "id">) => {
     seqRef.current += 1;

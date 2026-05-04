@@ -14,6 +14,7 @@ export type CharacterState = {
   usageCount: number;
   unlocked: boolean;
   lastEventAt: number | null;       // 마지막 이벤트 트리거 시각 (ms epoch)
+  autoStage: number;                 // events.jsonl 카운트 → Stage(0~4). override 시 글로벌 stage로 덮임
 };
 
 export const BUBBLE_TTL_MS = 4000;
@@ -37,6 +38,7 @@ export function initialStates(stage: number | null | undefined): CharacterState[
       usageCount: 0,
       unlocked: isUnlocked(meta.id, stage),
       lastEventAt: null,
+      autoStage: 0,
     };
   });
 }
@@ -48,7 +50,8 @@ export type ReducerAction =
   | { type: "JUMP_END"; agent: AgentId }
   | { type: "RETURN_HOME"; agent: AgentId }
   | { type: "BUBBLE_EXPIRE"; now: number }
-  | { type: "STAGE_CHANGE"; stage: number };
+  | { type: "STAGE_CHANGE"; stage: number }
+  | { type: "AUTO_STAGE_UPDATE"; stages: Partial<Record<AgentId, number>> };
 
 function update(states: CharacterState[], id: AgentId, patch: Partial<CharacterState>): CharacterState[] {
   return states.map((s) => (s.id === id ? { ...s, ...patch } : s));
@@ -135,6 +138,18 @@ export function characterReducer(states: CharacterState[], action: ReducerAction
         ...s,
         unlocked: isUnlocked(s.id, action.stage),
       }));
+    }
+
+    case "AUTO_STAGE_UPDATE": {
+      // 카운트 기반 stage 갱신 (다른 상태 보존). 변화 없으면 same reference 반환 — 무한 re-render 방지.
+      let changed = false;
+      const next = states.map((s) => {
+        const v = action.stages[s.id];
+        if (typeof v !== "number" || v === s.autoStage) return s;
+        changed = true;
+        return { ...s, autoStage: v };
+      });
+      return changed ? next : states;
     }
 
     default: {

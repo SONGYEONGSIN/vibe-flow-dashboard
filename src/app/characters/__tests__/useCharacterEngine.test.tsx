@@ -13,12 +13,12 @@ afterEach(() => {
 
 describe("useCharacterEngine", () => {
   it("initial states 12명", () => {
-    const { result } = renderHook(() => useCharacterEngine({ stage: 2, dialoguePool }));
+    const { result } = renderHook(() => useCharacterEngine({ stage: 2, dialoguePool, autoStages: {} }));
     expect(result.current.states).toHaveLength(12);
   });
 
   it("handleEvent — tool_result pass → designer jump + bubble", () => {
-    const { result } = renderHook(() => useCharacterEngine({ stage: 2, dialoguePool }));
+    const { result } = renderHook(() => useCharacterEngine({ stage: 2, dialoguePool, autoStages: {} }));
     act(() => {
       result.current.handleEvent({
         type: "tool_result",
@@ -33,7 +33,7 @@ describe("useCharacterEngine", () => {
   });
 
   it("4초 후 bubble 만료", () => {
-    const { result } = renderHook(() => useCharacterEngine({ stage: 2, dialoguePool }));
+    const { result } = renderHook(() => useCharacterEngine({ stage: 2, dialoguePool, autoStages: {} }));
     act(() => {
       result.current.handleEvent({ type: "tool_result", tool: "prettier", status: "pass" });
     });
