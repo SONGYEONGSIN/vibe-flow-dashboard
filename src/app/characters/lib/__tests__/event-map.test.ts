@@ -114,4 +114,36 @@ describe("event-map", () => {
     expect(r[0].agent).toBe("qa");
     expect(r[0].action).toBe("idle");
   });
+
+  it("sleep_build_start → planner clap (사이클 시작 알림)", () => {
+    const r = mapEvent({
+      type: "sleep_build_start",
+      run_id: "20260504T105917Z-6af8",
+      branch: "feat/sleep-20260504T105917Z-foo",
+    });
+    expect(r).toEqual([
+      { agent: "planner", action: "clap", dialogueKey: "sleep_start" },
+    ]);
+  });
+
+  it("sleep_build_done → developer jump (사이클 성공)", () => {
+    const r = mapEvent({
+      type: "sleep_build_done",
+      run_id: "20260504T105917Z-6af8",
+      pr_url: "https://github.com/x/y/pull/1",
+    });
+    expect(r).toEqual([
+      { agent: "developer", action: "jump", dialogueKey: "sleep_done" },
+    ]);
+  });
+
+  it("sleep_build_abort → qa idle + planner walk-to qa (재계획 신호)", () => {
+    const r = mapEvent({
+      type: "sleep_build_abort",
+      run_id: "20260504T105917Z-6af8",
+      exit_reason: "test_failure_retry_exhausted",
+    });
+    expect(r).toContainEqual({ agent: "qa", action: "idle", dialogueKey: "sleep_abort" });
+    expect(r).toContainEqual({ agent: "planner", action: "walk-to", target: "qa", dialogueKey: "sleep_abort" });
+  });
 });

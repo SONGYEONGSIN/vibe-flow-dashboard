@@ -28,6 +28,7 @@ export const AGENT_COUNT_RULES: Record<AgentId, EventMatcher[]> = {
     { type: "plan_created" },
     { type: "plan_step_complete" },
     { type: "brainstorm" },
+    { type: "sleep_build_start" },
   ],
   designer: [
     { type: "skill_invoked", skill: "design-sync" },
@@ -39,6 +40,7 @@ export const AGENT_COUNT_RULES: Record<AgentId, EventMatcher[]> = {
     { type: "skill_invoked", skill: "release" },
     { type: "commit_created" },
     { type: "tool_result", tool: "tsc" },
+    { type: "sleep_build_done" },
   ],
   qa: [
     { type: "skill_invoked", skill: "test" },
@@ -50,6 +52,7 @@ export const AGENT_COUNT_RULES: Record<AgentId, EventMatcher[]> = {
     { type: "tool_result", tool: "playwright" },
     { type: "verify_complete" },
     { type: "perf_audit" },
+    { type: "sleep_build_abort" },
   ],
   security: [
     { type: "skill_invoked", skill: "security" },
