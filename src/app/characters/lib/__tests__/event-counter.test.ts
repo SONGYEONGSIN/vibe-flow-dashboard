@@ -163,4 +163,17 @@ describe("countEvents", () => {
     expect(result.planner).toBe(0);
     expect(result.qa).toBe(0);
   });
+
+  it("sleep_build_* 3 이벤트 — 각각 planner/developer/qa로 분기 카운트", () => {
+    const events = [
+      { type: "sleep_build_start", run_id: "r1" },
+      { type: "sleep_build_done", run_id: "r1", pr_url: "..." },
+      { type: "sleep_build_start", run_id: "r2" },
+      { type: "sleep_build_abort", run_id: "r2", exit_reason: "test_fail" },
+    ];
+    const result = countEvents(events);
+    expect(result.planner).toBe(2);
+    expect(result.developer).toBe(1);
+    expect(result.qa).toBe(1);
+  });
 });

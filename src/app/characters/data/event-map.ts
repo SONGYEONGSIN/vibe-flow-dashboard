@@ -159,5 +159,19 @@ export function mapEvent(event: RawEvent): ActionInstruction[] {
     }
   }
 
+  // /sleep-build 자율 사이클 — start/done/abort 3 이벤트 (vibe-flow run-log.sh에서 push)
+  if (type === "sleep_build_start") {
+    return [{ agent: "planner", action: "clap", dialogueKey: "sleep_start" }];
+  }
+  if (type === "sleep_build_done") {
+    return [{ agent: "developer", action: "jump", dialogueKey: "sleep_done" }];
+  }
+  if (type === "sleep_build_abort") {
+    return [
+      { agent: "qa", action: "idle", dialogueKey: "sleep_abort" },
+      { agent: "planner", action: "walk-to", target: "qa", dialogueKey: "sleep_abort" },
+    ];
+  }
+
   return [];
 }
