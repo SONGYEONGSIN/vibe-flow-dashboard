@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### 변경 (Breaking — 식별자 rename, 동작 변경 0)
+- **`sleep_build_*` event type → `auto_build_*`** (vibe-flow PR #40 짝) — vibe-flow의 sleep-build 스킬이 auto-build로 rename됨에 따라 event consumer 갱신.
+  - `event-map.ts` 3 분기 (`sleep_build_start/done/abort` → `auto_build_start/done/abort`)
+  - `agent-event-map.ts` Stage 카운트 룰 키
+  - `event-map.test.ts` + `event-counter.test.ts` fixture
+  - `dialogue-pool.json` 컨텍스트 키 (`sleep_start/done/abort` → `auto_start/done/abort`)
+  - `docs/superpowers/specs/2026-05-04-sleep-build-events-mapping.md` → `2026-05-04-auto-build-events-mapping.md`
+  - 94/94 unit tests 통과 (회귀 0)
+  - 과거 `sleep_build_*` jsonl 데이터 — event-counter unknown 무시 정책으로 안전 (변경 X)
+
 ## [1.1.0] - 2026-05-04 — 12 에이전트 캐릭터 시스템 (정적 + 자동 진화)
 
 vibe-flow events.jsonl을 12 픽셀 캐릭터로 시각화. 정서적 피드백 루프를 dashboard 핵심 가치로 격상.

@@ -3,8 +3,8 @@
     "tool_pass":     ["계획대로다", "다음 단계 OK", "흠... 좋아"],
     "tool_fail":     ["다시 짜자", "계획 수정"],
     "skill_invoked": ["계획 시작!", "📋 출동", "잘 정리하자"],
-    "sleep_start":   ["야간 사이클 출발!", "🌙 시작합니다", "푹 자고 와요"],
-    "sleep_abort":   ["재계획해야겠다", "어디서 막혔지", "QA 가서 보자"],
+    "auto_start":   ["야간 사이클 출발!", "🌙 시작합니다", "푹 자고 와요"],
+    "auto_abort":   ["재계획해야겠다", "어디서 막혔지", "QA 가서 보자"],
     "wander":        ["다음은…", "📋"]
   },
   "designer": {
@@ -17,7 +17,7 @@
     "tool_pass":     ["타입 통과", "컴파일 OK", "⚡ 빨라!"],
     "tool_fail":     ["타입 안 맞음", "컴파일 실패…", "수정 중"],
     "skill_invoked": ["⚡ 코드 갑니다", "구현하자", "타이핑!"],
-    "sleep_done":    ["밤새 PR 1개 ✨", "자율 사이클 완료!", "⚡ morning review"],
+    "auto_done":    ["밤새 PR 1개 ✨", "자율 사이클 완료!", "⚡ morning review"],
     "wander":        ["코드 짠다", "⚡"]
   },
   "qa": {
@@ -26,7 +26,7 @@
     "bug_found":     ["여기다!", "이거 봐!"],
     "investigation": ["확인 중…", "🔍"],
     "skill_invoked": ["🔍 점검 들어감", "테스트 가즈아", "버그 잡으러"],
-    "sleep_abort":   ["여기서 막혔어", "재시도 소진", "🔍 morning review"],
+    "auto_abort":   ["여기서 막혔어", "재시도 소진", "🔍 morning review"],
     "wander":        ["흠…"]
   },
   "security": {
