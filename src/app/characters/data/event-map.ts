@@ -159,7 +159,7 @@ export function mapEvent(event: RawEvent): ActionInstruction[] {
     }
   }
 
-  // /sleep-build 자율 사이클 — start/done/abort 3 이벤트 (vibe-flow run-log.sh에서 push)
+  // /auto-build 자율 사이클 — start/done/abort 3 이벤트 (vibe-flow run-log.sh에서 push)
   if (type === "auto_build_start") {
     return [{ agent: "planner", action: "clap", dialogueKey: "auto_start" }];
   }
