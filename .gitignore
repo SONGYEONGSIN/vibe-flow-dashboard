@@ -40,3 +40,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .claude/
+.claude/events.jsonl
+.claude/store.db
+.claude/session-logs/
+.claude/metrics/
+.claude/messages/inbox/
+.claude/messages/archive/
+.claude/messages/broadcast/
+.claude/messages/.last-debate-trigger
+.claude/.last-memory-sync
+.claude/agent-memory/
+.claude/memory-sync.log
+.claude/memory/auto-build-runs.jsonl
