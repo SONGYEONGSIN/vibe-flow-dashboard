@@ -173,5 +173,10 @@ export function mapEvent(event: RawEvent): ActionInstruction[] {
     ];
   }
 
+  // git commit 발생 (vibe-flow의 .git/hooks/post-commit이 emit) — developer 캐릭터가 산출물 완료를 jump로 표시
+  if (type === "commit_pushed") {
+    return [{ agent: "developer", action: "jump", dialogueKey: "commit" }];
+  }
+
   return [];
 }

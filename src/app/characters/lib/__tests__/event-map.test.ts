@@ -146,4 +146,16 @@ describe("event-map", () => {
     expect(r).toContainEqual({ agent: "qa", action: "idle", dialogueKey: "auto_abort" });
     expect(r).toContainEqual({ agent: "planner", action: "walk-to", target: "qa", dialogueKey: "auto_abort" });
   });
+
+  it("commit_pushed → developer jump (vibe-flow 짝 dogfooding 2차 cycle)", () => {
+    const r = mapEvent({
+      type: "commit_pushed",
+      ts: "2026-05-12T11:05:07Z",
+      branch: "main",
+      subject: "feat: test commit",
+    });
+    expect(r).toEqual([
+      { agent: "developer", action: "jump", dialogueKey: "commit" },
+    ]);
+  });
 });
